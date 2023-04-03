@@ -13,7 +13,7 @@ This project is created by me for the [Data Engineering Zoomcamp 2023](https://g
 - [Reviewing criteria](#reviewing-criteria)
 
 ## Problem statement and project description
-We often read online when someone tweets something controversial or if there is a breakthrough in science and tech or if a tragedy strikes, the stock prices of companies move up or down rapidly in response to those. It would definitely be in interest of individuals investing in stocks or companies monitoring their market value to keep track of the internet for news articles/social media/social networks and their subsequent impact on stock values.  
+We often read online when someone tweets something controversial or if there is a breakthrough in science and tech or if a tragedy strikes, the stock values of companies move up or down rapidly in response to those. It would definitely be in interest of individuals investing in stocks or companies monitoring their market value to keep track of the internet for news articles/social media/social networks and their subsequent impact on stock values.  
   
 This task however is complex and would require tremendous efforts to identify important signals and setup infrastructure to track those. My project aims to implement a small subset of this task by creating an end-to-end automated pipeline to pull stock related data from Alpha Vantage API and push it into a dashboard to visualise stock values and their correlation with news article sentiments. We will do this by taking daily adjusted closing stock value in USD and daily average sentiment of news articles where a respective stock/company/ticker is mentioned. Both data points are available via the [Alpha Vantage API](https://www.alphavantage.co/documentation/). We will consider only technology stocks and identify top 5 by market cap. Reference [here](https://www.nasdaq.com/market-activity/stocks/screener).  
   
@@ -37,7 +37,7 @@ This project can mainly be used for academic purposes and with a little bit of t
 
 ## Pipeline diagram
  
-<img width="602" alt="Pipeline Diagram" src="https://user-images.githubusercontent.com/12958946/229422092-4eb7c53d-8d6e-4aac-9e8a-0292fc23dced.PNG">
+![Pipeline Diagram](https://user-images.githubusercontent.com/12958946/229486426-f4ad4065-af9c-41bb-9c5e-6ef807f859d3.PNG)
 
 
 ## Pipeline explanation
@@ -45,7 +45,7 @@ This project can mainly be used for academic purposes and with a little bit of t
   
 - Prefect library/prefect cloud is used for orchestration to create flows/tasks and pipeline deployments to monitor runs. The prefect server is running in the cloud and the prefect agent is running in the docker container. 
 
-- Terraform is used to manage GCP resources - GCS, BQ DWH and DataProc Cluster. Relevant variables are defined in the *variables.tf* file for reproducibility. Resource configuration is set in *main.tf* file. Since our data size is small, for the DataProc cluster we are using 1 master and no workers along with lowest compute configuration.  
+- Terraform is used to manage GCP resources - GCS, BQ DWH and DataProc Cluster. Relevant variables are defined in the *variables.tf* file for reproducibility. Resource configuration is set in *main.tf* file. Since our data size is small, for the DataProc Cluster we are using 1 master and no workers along with lowest compute configuration.  
 
 - *pipeline_deployment_build.py* is the main pipeline file written in python and is built to be deployed on the prefect cloud. The main pipeline file has 4 important functions -> **pull_time_series_stock_data**, **pull_time_series_stock_sentiment_data**, **upload_to_gcs** and **submit_spark_job**.  
 
@@ -55,20 +55,22 @@ This project can mainly be used for academic purposes and with a little bit of t
 
   - There is a limit of 5 calls per min to Alpha Vantage with the free key, so we have a pausing mechanism that will pause the execution for 60 secs + 2 secs (for buffer) after every 5 calls made. There is also a limit of 500 calls per day, so we must make sure not to breach that limit. Would be best to calculate how many calls would be required for the data fetch before doing a run. Example – if the stocks to pull data for is 5; The time period in weeks to pull the data for is 52 then total calls would be -> time series daily adjusted data(5 calls) + time series sentiment data(5*52 calls) = 265 calls. Since 265 is below the daily limit of 500, it is safe to move forward.   
 
-  - **The upload_to_gcs** function is uploading our raw data and spark job python file from docker to the GCS bucket we created with Terraform.   
+  - **The upload_to_gcs** function is uploading our raw data/dataframes and spark job python file from docker to the GCS bucket we created with Terraform.   
 
   - The **submit_spark_job** function is submitting the spark job python file from GCS to DataProc to transform raw data present in GCS and store/append it to our BQ DWH table. Refer *spark_job.py* for more details. I am joining stock data and stock sentiment data using an outer join so that I can visualise their correlation and identify individual articles if need be.  
 
 - The dashboard is built on top of the BQ table.
   - Following fields are calculated to use in the dashboard :
     - Daily Adjusted Closing Value = SUM(Value)/COUNT(Value)  
-      
+     
     - Average Sentiment = SUM(Sentiment)/SUM(Record_Count)
     - Maximum Positive Sentiment = MAX(Sentiment)
-    - Maximum Negative Sentiment = MIN(Sentiment).  
+    - Maximum Negative Sentiment = MIN(Sentiment)
+    
   - I have created 3 charts in the dashboard :
-    - Day-on-day trend of daily adjust closing value and daily average sentiment for the selected stock. 
-    - Day on day-on-day maximum positive and negative sentiment recorded for the selected stock. 
+    - Day-on-day trend of daily adjusted closing value and daily average sentiment for the selected stock.  
+      
+    - Day-on-day maximum positive and negative sentiment recorded for the selected stock. 
     - Table to identify topmost negative or positive articles.
 
 
@@ -117,8 +119,8 @@ This project can mainly be used for academic purposes and with a little bit of t
   - "gcp_key_path”: "/app/codes/gcp_key.json" – Path to gcp key. You don’t need to change this.  
     
   - "alpha_vantage_key” : "alpha_vantage_api_key" – Your free Alpha Vantage API key.
-  - "from_date” : "2021-12-27" – Starting date (**Monday** in YYYY-MM-DD format) to pull data from.
-  - "to_date" : "2023-03-27" – Ending date (**Monday** in YYYY-MM-DD) to pull date until. 
+  - "from_date” : "2023-03-27" – Starting date (**Monday** in YYYY-MM-DD format) to pull data from.
+  - "to_date" : "2023-04-03" – Ending date (**Monday** in YYYY-MM-DD) to pull date until. 
   - "gcs_bucket_name" : "your_gcs_bucket_name" – GCS data lake bucket name you have set with terraform.
   - "bq_dataset_name” : "your_bq_dataset_name" – BQ dataset name you have set with terraform.
   - "bq_table_name” : "your_bq_table_name" – BQ table to store data in.
@@ -129,7 +131,7 @@ This project can mainly be used for academic purposes and with a little bit of t
 - Start prefect agent in your docker container and wait for the flow run to start.  
 `prefect agent start -q default`  
   
-- Once the agent picks up the run, you can then monitor its progress in prefect clou.  
+- Once the agent picks up the run, you can then monitor its progress in prefect cloud.  
 
 ### Step 5(Optional) - Delete project.  
   
@@ -187,14 +189,14 @@ This project can mainly be used for academic purposes and with a little bit of t
     - 0 points: No workflow orchestration
     - 2 points: Partial workflow orchestration: some steps are orchestrated, some run manually
     - 4 points: End-to-end pipeline: multiple steps in the DAG, uploading data to data lake
-- Data warehouse – *Big Query Datawarehouse used to store transformed table. Please note for the sake of optimization, partitioning and clustering is not used for this project as we are not dealing with large size datasets. The final transformed data is in MBs and as discussed in lecture videos it doesn’t make to apply table partitioning and clustering in such cases. Reference to lecture - https://youtu.be/-CqXf7vhhDs?t=136*
+- Data warehouse – *Big Query Datawarehouse used to store transformed table. Please note for the sake of optimization, partitioning and clustering is not used for this project as we are not dealing with large size datasets. The final transformed data is in MBs and as discussed in lecture videos it doesn’t make sense to apply table partitioning and clustering in such cases. Reference to lecture - https://youtu.be/-CqXf7vhhDs?t=136*
   - 0 points: No DWH is used
   - 2 points: Tables are created in DWH, but not optimized
   - 4 points: Tables are partitioned and clustered in a way that makes sense for the upstream queries (with explanation)
 - Transformations (dbt, spark, etc) – *Spark is used for data transformations.*
-  - 0 points: No tranformations
+  - 0 points: No transformations
   - 2 points: Simple SQL transformation (no dbt or similar tools)
-  - 4 points: Tranformations are defined with dbt, Spark or similar technologies
+  - 4 points: Transformations are defined with dbt, Spark or similar technologies
 - Dashboard – *Dashboard is created with Looker studio. 3 charts/tiles created.*
   - 0 points: No dashboard
   - 2 points: A dashboard with 1 tile
