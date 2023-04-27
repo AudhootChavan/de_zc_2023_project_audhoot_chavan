@@ -152,7 +152,7 @@ This project can mainly be used for academic purposes and with a little bit of t
 `docker image rm de_zc`
 
 ## Dashboard and results 
-- You can access the dashboard [here](https://lookerstudio.google.com/reporting/ac1aeee7-3fcf-4be6-b443-3977f59b8fe7). It is an exact copy of my official dashboard and created using my personal account to make it available for everyone to access. The official dashboard is [here](https://lookerstudio.google.com/s/nE0ODSDa_o8)(exactly the same) however the link is restricted and can only be shared on a case by case basis. Peer reviewers from DE ZC 2023 will have to make an access request using their google account. Please expect access within 1-2 days. You can also ping me on slack.  
+- You can access the dashboard [here](https://lookerstudio.google.com/reporting/ac1aeee7-3fcf-4be6-b443-3977f59b8fe7).    
 
 ![Dashboard Screenshot](https://user-images.githubusercontent.com/12958946/229422141-fc9ab605-6925-4f35-aef6-a352a03208a1.png)
 
